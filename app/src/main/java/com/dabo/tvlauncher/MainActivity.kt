@@ -54,6 +54,15 @@ class MainActivity : Activity() {
         "com.cricfytv.sports,com.phlox.tvwebbrowser,com.netflix.mediaclient," +
             "com.google.android.youtube.tv,com.amazon.amazonvideo.livingroom,com.android.vending"
 
+    // Not real apps: helper services and a leftover drawer shortcut.
+    private val hiddenPkgs = setOf(
+        "com.google.android.tv.remote.service",
+        "com.purefusionatv.appdraweratv"
+    )
+
+    // Apps whose banner image is blank or unreadable: use the normal icon instead.
+    private val iconOnlyPkgs = setOf("com.phlox.tvwebbrowser")
+
     private lateinit var bg: GradientDrawable
     private lateinit var heroTitle: TextView
     private lateinit var heroSub: TextView
@@ -221,7 +230,7 @@ class MainActivity : Activity() {
         t.text = text
         t.setTextColor(0x99FFFFFF.toInt())
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, u(12f))
-        t.setPadding(ui(48f), 0, 0, ui(2f))
+        t.setPadding(ui(48f), ui(14f), 0, ui(2f))
         return t
     }
 
@@ -277,8 +286,8 @@ class MainActivity : Activity() {
             val query = Intent(Intent.ACTION_MAIN).addCategory(cat)
             for (ri in pm.queryIntentActivities(query, 0)) {
                 val pkg = ri.activityInfo.packageName
-                if (pkg == packageName || !seen.add(pkg)) continue
-                val banner = ri.activityInfo.loadBanner(pm)
+                if (pkg == packageName || pkg in hiddenPkgs || !seen.add(pkg)) continue
+                val banner = if (pkg in iconOnlyPkgs) null else ri.activityInfo.loadBanner(pm)
                 val drawable = banner ?: ri.loadIcon(pm)
                 val launch = Intent(Intent.ACTION_MAIN)
                     .addCategory(cat)
@@ -415,7 +424,7 @@ class MainActivity : Activity() {
                 h.img.setPadding(0, 0, 0, 0)
             } else {
                 h.img.scaleType = ImageView.ScaleType.FIT_CENTER
-                h.img.setPadding(ui(46f), ui(18f), ui(46f), ui(18f))
+                h.img.setPadding(ui(42f), ui(9f), ui(42f), ui(9f))
             }
             h.label.text = item.label
             applyFocus(h, h.itemView.isFocused)

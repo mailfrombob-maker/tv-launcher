@@ -10,8 +10,12 @@ import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Outline
+import android.graphics.Paint
+import android.graphics.Shader
 import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -288,16 +292,38 @@ class MainActivity : Activity() {
                 val pkg = ri.activityInfo.packageName
                 if (pkg == packageName || pkg in hiddenPkgs || !seen.add(pkg)) continue
                 val banner = if (pkg in iconOnlyPkgs) null else ri.activityInfo.loadBanner(pm)
-                val drawable = banner ?: ri.loadIcon(pm)
+                val generated = pkg in iconOnlyPkgs
+                val drawable = if (generated) makeTextTile(ri.loadLabel(pm).toString()) else (banner ?: ri.loadIcon(pm))
                 val launch = Intent(Intent.ACTION_MAIN)
                     .addCategory(cat)
                     .setClassName(pkg, ri.activityInfo.name)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-                out.add(AppItem(pkg, ri.loadLabel(pm).toString(), drawable, banner != null, launch))
+                out.add(AppItem(pkg, ri.loadLabel(pm).toString(), drawable, banner != null || generated, launch))
             }
         }
         out.sortBy { it.label.lowercase() }
         return out
+    }
+
+    // Simple blue tile with the app name, for apps whose own icon renders blank on this box.
+    private fun makeTextTile(text: String): Drawable {
+        val w = 320
+        val h = 180
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.shader = LinearGradient(
+            0f, 0f, w.toFloat(), h.toFloat(),
+            0xFF3B82F6.toInt(), 0xFF1E3A8A.toInt(), Shader.TileMode.CLAMP
+        )
+        c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
+        p.shader = null
+        p.color = Color.WHITE
+        p.textSize = 56f
+        p.typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        p.textAlign = Paint.Align.CENTER
+        c.drawText(text, w / 2f, h / 2f + 20f, p)
+        return BitmapDrawable(resources, bmp)
     }
 
     private fun launch(item: AppItem) {
